@@ -29,7 +29,7 @@ import ProductQuestions from "@/features/products/components/product-detail/Prod
 import RelatedProductsSlider from "@/features/products/components/product-detail/RelatedProductsSlider";
 import SuggestedProductsSlider from "@/features/products/components/product-detail/SuggestedProductsSlider";
 import SpecialOffersBox from "@/features/products/components/product-detail/SpecialOffersBox";
-
+import Advantages from "@/features/advantages/components/Advantages";
 import { productApi } from "@/features/products/api/productApi";
 import { cartApi } from "@/features/cart/api/cartApi";
 
@@ -50,14 +50,12 @@ export default function ProductPage() {
   const [isScrolledToCard, setIsScrolledToCard] = useState(false);
   const mobileScrollContainerRef = useRef(null);
 
-  // ---- Add to cart state ----
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [cartItem, setCartItem] = useState(null);
   const [loadingCart, setLoadingCart] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  // گرفتن محصول از API
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
@@ -85,7 +83,6 @@ export default function ProductPage() {
     };
   }, [slug]);
 
-  // اسکرول موبایل
   useEffect(() => {
     const container = mobileScrollContainerRef.current;
     if (!container) return;
@@ -97,7 +94,6 @@ export default function ProductPage() {
     return () => container.removeEventListener("scroll", handleScroll);
   }, [product]);
 
-  // ---------- Check cart status ----------
   const checkCartStatus = useCallback(async () => {
     if (!product) return;
     try {
@@ -109,16 +105,24 @@ export default function ProductPage() {
         : [];
 
       const targetProductId = Number(product.id);
-      const targetVariantId = selectedVariant?.id ? Number(selectedVariant.id) : null;
+      const targetVariantId = selectedVariant?.id
+        ? Number(selectedVariant.id)
+        : null;
 
       const found = items.find((item) => {
-        const itemProductId = Number(item.product_id || item.product?.id || item.product);
-        const itemVariantId = item.variant_id || item.variant?.id || item.variant
-          ? Number(item.variant_id || item.variant?.id || item.variant)
-          : null;
+        const itemProductId = Number(
+          item.product_id || item.product?.id || item.product
+        );
+        const itemVariantId =
+          item.variant_id || item.variant?.id || item.variant
+            ? Number(item.variant_id || item.variant?.id || item.variant)
+            : null;
 
         if (targetVariantId) {
-          return itemProductId === targetProductId && itemVariantId === targetVariantId;
+          return (
+            itemProductId === targetProductId &&
+            itemVariantId === targetVariantId
+          );
         }
         return itemProductId === targetProductId;
       });
@@ -142,7 +146,6 @@ export default function ProductPage() {
     return () => window.removeEventListener("cart:updated", onCartUpdated);
   }, [checkCartStatus]);
 
-  // ---------- Add to cart ----------
   const handleAddToCart = async () => {
     if (!product || adding) return;
     setAdding(true);
@@ -175,7 +178,6 @@ export default function ProductPage() {
     }
   };
 
-  // ---------- Update quantity ----------
   const handleUpdateQuantity = async (newQuantity) => {
     if (!cartItem || loadingCart) return;
 
@@ -193,7 +195,9 @@ export default function ProductPage() {
         setCartItem(null);
       } else {
         await cartApi.updateItem(itemId, Number(newQuantity));
-        setCartItem((prev) => (prev ? { ...prev, quantity: newQuantity } : null));
+        setCartItem((prev) =>
+          prev ? { ...prev, quantity: newQuantity } : null
+        );
       }
 
       if (typeof window !== "undefined") {
@@ -217,28 +221,24 @@ export default function ProductPage() {
           ? "product-description-mobile"
           : "product-description";
       const element = document.getElementById(targetId);
-      if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (element)
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
 
-// ساخت داینامیک آیتم‌های بردکرامپ بدون تکرار خانه و با لینک‌های درست
   const breadcrumbItems = (() => {
-    // ۱. اگر دیتای بردکرامپ از بک‌اند دریافت شده باشد
     if (Array.isArray(product?.breadcrumb) && product.breadcrumb.length > 0) {
       return product.breadcrumb
-        // حذف آیتم "خانه" از دیتای API برای جلوگیری از تکرار آن در UI
         .filter((b) => b.name !== "خانه" && b.slug !== "home")
         .map((item, index, arr) => {
           const isLast = index === arr.length - 1;
           return {
             label: item.name,
-            // آیتم آخر (خود محصول) کلیک‌پذیر نیست؛ باقی موارد به کوئری پارامتر دسته وصل می‌شوند
             href: isLast ? undefined : `/products?category=${item.slug}`,
           };
         });
     }
 
-    // ۲. فالبک در صورت عدم دریافت دیتا از API
     return [
       {
         label: product?.category?.name || "پوشاک مردانه",
@@ -247,6 +247,7 @@ export default function ProductPage() {
       { label: product?.title || "جزئیات محصول" },
     ];
   })();
+
   const HeaderButtons = ({ isPinned = false }) => (
     <div className="flex items-center justify-between w-full transition-all duration-300">
       <button
@@ -399,7 +400,7 @@ export default function ProductPage() {
               </div>
 
               <ProductFeaturesBadge product={product} />
-              <ProductSellers product={product} />
+              
               <div className="my-6">
                 <SpecialOffersBox product={product} />
               </div>
@@ -411,23 +412,19 @@ export default function ProductPage() {
                 />
               </div>
 
+              {/* ✅ محصولات مرتبط */}
               <div className="mt-8 border-t border-gray-100 pt-6">
-                <RelatedProductsSlider
-                  products={product.related_products}
-                  categoryId={product.category?.slug}
-                />
+                <RelatedProductsSlider slug={slug} limit={8} />
               </div>
+              {/* ✅ محصولات پیشنهادی */}
               <div className="mt-6 border-t border-gray-100 pt-6">
-                <SuggestedProductsSlider
-                  products={product.suggested_products}
-                  categoryId={product.category?.slug}
-                />
+                <SuggestedProductsSlider slug={slug} limit={6} />
               </div>
             </div>
           ) : (
             <div className="space-y-8">
-              <ProductReviews product={product} />
-              <ProductQuestions product={product} />
+              <ProductReviews slug={slug} />
+              <ProductQuestions slug={slug} />
             </div>
           )}
         </div>
@@ -450,11 +447,15 @@ export default function ProductPage() {
                   className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-200/60"
                 >
                   <span className="text-sm font-medium text-gray-800">
-                    {isFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها"}
+                    {isFavorite
+                      ? "حذف از علاقه‌مندی‌ها"
+                      : "افزودن به علاقه‌مندی‌ها"}
                   </span>
                   <HeartIcon
                     className={`w-5 h-5 ${
-                      isFavorite ? "fill-rose-500 text-rose-500" : "text-gray-600"
+                      isFavorite
+                        ? "fill-rose-500 text-rose-500"
+                        : "text-gray-600"
                     }`}
                   />
                 </button>
@@ -462,7 +463,10 @@ export default function ProductPage() {
                   type="button"
                   onClick={() => {
                     if (navigator.share) {
-                      navigator.share({ title: product.title, url: window.location.href });
+                      navigator.share({
+                        title: product.title,
+                        url: window.location.href,
+                      });
                     }
                     setIsBottomSheetOpen(false);
                   }}
@@ -478,7 +482,6 @@ export default function ProductPage() {
           </div>
         )}
 
-        {/* ---------- Sticky Bottom Action Bar (Mobile) ---------- */}
         <div className="fixed bottom-0 left-3 right-3 z-40 max-w-md mx-auto">
           <div className="relative overflow-hidden rounded-3xl bg-white/95 border border-gray-200/80 p-3.5 shadow-xl ring-1 ring-black/5 mb-2">
             {adding || added ? (
@@ -543,7 +546,10 @@ export default function ProductPage() {
                       <span className="relative flex items-center justify-center">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-30 animate-ping" />
                         <span className="relative text-[10px] font-black bg-rose-500/10 text-rose-600 border border-rose-500/20 px-2 py-0.5 rounded-full">
-                          ٪{Number(product.discount_percent).toLocaleString("fa-IR")}
+                          ٪
+                          {Number(product.discount_percent).toLocaleString(
+                            "fa-IR"
+                          )}
                         </span>
                       </span>
                     )}
@@ -557,7 +563,9 @@ export default function ProductPage() {
                     <span className="text-base font-black tracking-tight text-gray-900">
                       {Number(product.final_price).toLocaleString("fa-IR")}
                     </span>
-                    <span className="text-[10px] font-bold text-gray-500">تومان</span>
+                    <span className="text-[10px] font-bold text-gray-500">
+                      تومان
+                    </span>
                   </div>
                 </div>
               </div>
@@ -595,8 +603,9 @@ export default function ProductPage() {
           </div>
         </div>
 
-        <ProductFeaturesBadge product={product} />
-        <ProductSellers product={product} />
+      
+        <Advantages variant="monochrome" />
+        
 
         <div className="w-full bg-rose-50/70 rounded-2xl mt-4 py-2.5">
           <div className="flex justify-start">
@@ -645,21 +654,17 @@ export default function ProductPage() {
               selectedVariant={selectedVariant}
             />
           )}
-          {desktopTab === "reviews" && <ProductReviews product={product} />}
-          {desktopTab === "questions" && <ProductQuestions product={product} />}
+          {desktopTab === "reviews" && <ProductReviews slug={slug} />}
+          {desktopTab === "questions" && <ProductQuestions slug={slug} />}
         </div>
 
+        {/* ✅ محصولات مرتبط */}
         <div className="pt-8 border-t border-gray-100">
-          <RelatedProductsSlider
-            products={product.related_products}
-            categoryId={product.category?.slug}
-          />
+          <RelatedProductsSlider slug={slug} limit={8} />
         </div>
+        {/* ✅ محصولات پیشنهادی */}
         <div className="pt-8 border-t border-gray-100">
-          <SuggestedProductsSlider
-            products={product.suggested_products}
-            categoryId={product.category?.slug}
-          />
+          <SuggestedProductsSlider slug={slug} limit={6} />
         </div>
       </div>
     </div>

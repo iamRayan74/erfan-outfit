@@ -8,34 +8,121 @@ import { BoltIcon } from '@heroicons/react/24/solid';
 import { ArrowLeftIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import Timer from '@/components/common/Timer';
+import Skeleton from '@/components/ui/Skeleton';
 
 import 'swiper/css';
 
-// تابع کمکی برای پارس کردن قیمت‌های عددی یا رشته‌ای کامادار
 const formatPrice = (val) => {
   if (val === null || val === undefined || val === '') return '';
   if (typeof val === 'number') {
     return new Intl.NumberFormat('fa-IR').format(val);
   }
-  // اگر رشته بود و کاما داشت، کاماها را حذف کرده و فارسی‌سازی می‌کنیم
   const cleanNumber = String(val).replace(/,/g, '');
   const num = Number(cleanNumber);
   return isNaN(num) ? val : new Intl.NumberFormat('fa-IR').format(num);
 };
 
+/* ---------- اسکلتون کارت محصول داخل اسلایدر ---------- */
+function ProductSlideSkeleton() {
+  return (
+    <div className="w-full flex flex-row items-center gap-3 rounded-[2rem] bg-primary/5 p-2.5 border border-cart-boarder shadow-sm">
+      {/* تصویر */}
+      <Skeleton
+        variant="rectangular"
+        className="h-32 w-32 sm:h-36 sm:w-36 flex-shrink-0 rounded-[1.5rem]"
+      />
+
+      {/* اطلاعات */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between gap-2 py-0.5">
+        <div className="flex flex-col gap-2">
+          <Skeleton variant="rectangular" className="h-4 w-16 rounded-md" />
+          <Skeleton variant="text" className="h-4 w-full" />
+          <Skeleton variant="text" className="h-4 w-3/4" />
+          <Skeleton variant="text" className="h-3 w-1/2" />
+        </div>
+
+        <div className="flex flex-col gap-1 mt-1.5">
+          <Skeleton variant="text" className="h-3 w-14" />
+          <div className="flex items-center gap-1.5">
+            <Skeleton variant="text" className="h-6 w-20" />
+            <Skeleton variant="text" className="h-3 w-8" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- اسکلتون دسترسی سریع ---------- */
+function QuickAccessSkeleton() {
+  return (
+    <div className="relative aspect-square w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200">
+      <Skeleton
+        variant="rectangular"
+        className="w-full h-full rounded-xl sm:rounded-2xl"
+      />
+    </div>
+  );
+}
+
+/* ---------- اسکلتون کل کارت ---------- */
+function InstantOffersCardSkeleton() {
+  return (
+    <div className="relative bg-[#EFECE3] xl:backdrop-blur-3xl rounded-3xl p-6 border border-cart-boarder flex flex-col justify-between shadow-sm w-full h-full">
+      {/* هدر */}
+      <div className="flex justify-between items-center mb-6 gap-2">
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          <Skeleton
+            variant="rectangular"
+            className="w-9 h-9 sm:w-11 sm:h-11 rounded-md sm:rounded-2xl"
+          />
+          <div className="flex flex-col gap-1.5">
+            <Skeleton variant="text" className="w-24 h-3" />
+            <Skeleton variant="text" className="w-20 h-4" />
+          </div>
+        </div>
+
+        {/* تایمر */}
+        <Skeleton
+          variant="rectangular"
+          className="w-24 h-8 sm:w-28 sm:h-10 rounded-lg sm:rounded-2xl"
+        />
+      </div>
+
+      {/* اسلایدر محصول */}
+      <div className="overflow-hidden my-auto">
+        <ProductSlideSkeleton />
+      </div>
+
+      {/* دسترسی سریع */}
+      <div className="mt-auto pt-6">
+        <div className="flex items-center justify-center gap-x-2 mb-4">
+          <Skeleton variant="text" className="w-20 h-3" />
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cart-boarder to-transparent" />
+        </div>
+
+        <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar py-1">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <QuickAccessSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProductSlide({ item }) {
   const title = item.title || item.name || 'بدون عنوان';
   const categoryBadge = item.categoryBadge || item.badge || 'پیشنهاد ویژه';
   const description = item.description || '';
-  
-  // مدیریت درصد تخفیف (اگر از قبل علائم درصد یا اعداد متفاوتی داشت)
-  const discount = item.discount ? String(item.discount).replace('%', '').replace('٪', '').trim() : null;
 
-  // فرمت‌دهی امن قیمت‌ها
+  const discount = item.discount
+    ? String(item.discount).replace('%', '').replace('٪', '').trim()
+    : null;
+
   const price = formatPrice(item.price);
   const oldPrice = formatPrice(item.oldPrice || item.old_price);
 
-  // تصویر جایگزین (Placeholder) در صورت null بودن image در API
   const image = item.image ? item.image : '/images/placeholder.png';
   const href = item.href || `/products/${item.slug || item.id}`;
 
@@ -104,10 +191,20 @@ function ProductSlide({ item }) {
   );
 }
 
-export default function InstantOffersCard({ instantOffersData = {}, isLoading = false }) {
+export default function InstantOffersCard({
+  instantOffersData = {},
+  isLoading = false,
+}) {
   const offers = instantOffersData?.offers || [];
   const quickAccess = instantOffersData?.quickAccess || [];
-  const targetDate = instantOffersData?.targetDate || new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+  const targetDate =
+    instantOffersData?.targetDate ||
+    new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+
+  // ✅ اگر در حال لودینگ بود یا داده خالی بود → اسکلتون
+  if (isLoading || offers.length === 0) {
+    return <InstantOffersCardSkeleton />;
+  }
 
   const Icon = BoltIcon;
   const titlePrimary = 'پیشنهادات';

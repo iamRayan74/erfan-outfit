@@ -10,7 +10,7 @@ export const productApi = {
     return await baseApi.get(`/catalog/categories/${slug}/`);
   },
 
-  // --- Collections (اضافه شده برای مگامنو و لندینگ‌ها) ---
+  // --- Collections ---
   getCollections: async () => {
     return await baseApi.get("/catalog/collections/");
   },
@@ -23,7 +23,7 @@ export const productApi = {
     return await baseApi.get(`/catalog/collections/${slug}/`);
   },
 
-  // --- Colors / Sizes (فیلترهای داینامیک) ---
+  // --- Colors / Sizes ---
   getColors: async () => {
     return await baseApi.get("/catalog/colors/");
   },
@@ -36,11 +36,19 @@ export const productApi = {
   getProducts: async (params = {}) => {
     const cleanParams = Object.fromEntries(
       Object.entries(params).filter(
-        ([_, v]) => v !== null && v !== undefined && v !== "" && v !== false
+        ([_, v]) =>
+          v !== null &&
+          v !== undefined &&
+          v !== "" &&
+          v !== false
       )
     );
+
     console.log("[API getProducts] params:", cleanParams);
-    return await baseApi.get("/catalog/products/", { params: cleanParams });
+
+    return await baseApi.get("/catalog/products/", {
+      params: cleanParams,
+    });
   },
 
   getProductBySlug: async (slug) => {
@@ -55,21 +63,83 @@ export const productApi = {
     return await baseApi.get(`/catalog/products/${slug}/size-chart/`);
   },
 
+  // --- Related & Suggested Products ---
+  getRelatedProducts: async (slug, limit = 8) => {
+    return await baseApi.get(
+      `/catalog/product-extras/${slug}/related/`,
+      {
+        params: { limit },
+      }
+    );
+  },
+
+  getSuggestedProducts: async (slug, limit = 6) => {
+    return await baseApi.get(
+      `/catalog/product-extras/${slug}/suggested/`,
+      {
+        params: { limit },
+      }
+    );
+  },
+
+  // =========================================================
+  // --- Wishlist ---
+  // =========================================================
+
+  // افزودن محصول به علاقه‌مندی
+  addToWishlist: async (productId) => {
+    return await baseApi.post("/auth/wishlist/", {
+      product_id: productId,
+    });
+  },
+
+  // دریافت لیست علاقه‌مندی‌ها
+  getWishlist: async () => {
+    return await baseApi.get("/auth/wishlist/");
+  },
+
+  // حذف محصول از علاقه‌مندی
+  removeFromWishlist: async (wishlistId) => {
+    return await baseApi.delete(`/auth/wishlist/${wishlistId}/`);
+  },
+
   // --- Reviews & Questions ---
   getProductReviews: async (slug) => {
     return await baseApi.get(`/catalog/products/${slug}/reviews/`);
   },
 
   submitProductReview: async (slug, data) => {
-    return await baseApi.post(`/catalog/products/${slug}/reviews/`, data);
+    return await baseApi.post(
+      `/catalog/products/${slug}/reviews/`,
+      data
+    );
   },
 
   getProductQuestions: async (slug) => {
-    return await baseApi.get(`/catalog/products/${slug}/questions/`);
+    return await baseApi.get(
+      `/catalog/products/${slug}/questions/`
+    );
   },
 
   submitProductQuestion: async (slug, data) => {
-    return await baseApi.post(`/catalog/products/${slug}/questions/`, data);
+    return await baseApi.post(
+      `/catalog/products/${slug}/questions/`,
+      data
+    );
+  },
+
+  // لایک نظر
+  likeReview: async (reviewId) => {
+    return await baseApi.post(
+      `/catalog/reviews/${reviewId}/like/`
+    );
+  },
+
+  // دیسلایک نظر
+  unlikeReview: async (reviewId) => {
+    return await baseApi.post(
+      `/catalog/reviews/${reviewId}/unlike/`
+    );
   },
 
   // --- Tailoring Orders ---
@@ -78,10 +148,15 @@ export const productApi = {
   },
 
   createTailoringOrder: async (data) => {
-    return await baseApi.post("/catalog/tailoring/order/", data);
+    return await baseApi.post(
+      "/catalog/tailoring/order/",
+      data
+    );
   },
 
   cancelTailoringOrder: async (id) => {
-    return await baseApi.delete(`/catalog/tailoring/order/${id}/`);
+    return await baseApi.delete(
+      `/catalog/tailoring/order/${id}/`
+    );
   },
 };

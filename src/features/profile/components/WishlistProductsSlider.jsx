@@ -1,145 +1,190 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+} from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { PlusIcon, BookmarkIcon } from "@heroicons/react/24/outline";
+
+import {
+  PlusIcon,
+  BookmarkIcon,
+} from "@heroicons/react/24/outline";
+
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
 import Divider from "@/components/ui/Divider";
+
 import Swiper from "swiper";
 import "swiper/css";
 
-const WISHLIST_PRODUCTS = [
-  {
-    id: "w1",
-    title: "هودی دورس اسپرت مردانه",
-    price: 690000,
-    originalPrice: 850000,
-    image: "/images/products/hoodie.png",
-    href: "/products/men-hoodie",
-    sizes: ["S", "M", "L", "XL"],
-  },
-  {
-    id: "w2",
-    title: "تیشرت یقه‌گرد جینبی",
-    price: 390000,
-    originalPrice: 520000,
-    image: "/images/products/tshirt.png",
-    href: "/products/men-tshirt",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-  },
-  {
-    id: "w3",
-    title: "شلوار جین اسلیم فیت",
-    price: 850000,
-    originalPrice: 1200000,
-    image: "/images/products/jeans.png",
-    href: "/products/jeans",
-    sizes: ["28", "30", "32", "34", "36"],
-  },
-  {
-    id: "w4",
-    title: "کت اسپرت مردانه پاییزه",
-    price: 1250000,
-    originalPrice: 1680000,
-    image: "/images/products/jacket.png",
-    href: "/products/jacket",
-    sizes: ["M", "L", "XL", "XXL"],
-  },
-  {
-    id: "w5",
-    title: "پیراهن مجلسی مردانه",
-    price: 750000,
-    originalPrice: 980000,
-    image: "/images/products/shirt.png",
-    href: "/products/shirt",
-    sizes: ["S", "M", "L", "XL"],
-  },
-];
+import { productApi } from "@/features/products/api/productApi";
 
-// اسکلتون ریسپانسیو با ابعاد تصویر ثابت
+/* =========================================================
+   Skeleton
+========================================================= */
+
 function ProductCardSkeleton() {
   return (
-    <div className="w-[145px] sm:w-[165px] md:w-[180px] flex flex-col items-center gap-0 rounded-2xl bg-primary/5 p-2 border border-cart-boarder shadow-xs select-none shrink-0">
-      {/* باکس تصویر ثابت */}
-      <div className="w-full aspect-square relative overflow-hidden rounded-xl">
-        <Skeleton className="w-full h-full" />
+    <div className="w-[145px] shrink-0 rounded-2xl border border-cart-boarder bg-primary/5 p-2 shadow-xs sm:w-[165px] md:w-[180px]">
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl">
+        <Skeleton className="h-full w-full" />
       </div>
-      <div className="flex-1 w-full min-w-0 flex flex-col justify-between gap-1.5 px-0.5 py-1.5">
-        <div className="space-y-1.5">
-          <Skeleton variant="text" className="w-full h-3" />
-          <Skeleton variant="text" className="w-3/4 h-3" />
-          <div className="flex items-center gap-1 pt-0.5">
-            <Skeleton className="w-6 h-2.5 rounded" />
-            <Skeleton className="h-3.5 w-4 rounded" />
-            <Skeleton className="h-3.5 w-4 rounded" />
-          </div>
+
+      <div className="flex min-w-0 flex-col gap-2 px-0.5 py-1.5">
+        <Skeleton
+          variant="text"
+          className="h-3 w-full"
+        />
+
+        <Skeleton
+          variant="text"
+          className="h-3 w-3/4"
+        />
+
+        <div className="flex gap-1">
+          <Skeleton className="h-3.5 w-5 rounded" />
+          <Skeleton className="h-3.5 w-5 rounded" />
         </div>
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-cart-boarder to-transparent my-0.5" />
-        <div className="flex items-end justify-between w-full">
+
+        <div className="my-1 h-px w-full bg-cart-boarder" />
+
+        <div className="flex items-end justify-between">
           <div className="space-y-1">
-            <Skeleton variant="text" className="w-8 h-2.5" />
-            <Skeleton variant="text" className="w-14 h-3.5" />
+            <Skeleton
+              variant="text"
+              className="h-2.5 w-14"
+            />
+
+            <Skeleton
+              variant="text"
+              className="h-3.5 w-16"
+            />
           </div>
-          <Skeleton className="w-7 h-7 sm:w-8 sm:h-8 rounded-md" />
+
+          <Skeleton className="h-8 w-8 rounded-lg" />
         </div>
       </div>
     </div>
   );
 }
 
-// کارت محصول با عکس ثابت و تغییرناپذیر در موبایل
+/* =========================================================
+   Product Card
+========================================================= */
+
 function ProductCard({ product }) {
-  const availableSizes = product.sizes || ["S", "M", "L", "XL"];
+  const image =
+    product?.image ||
+    "/images/placeholder-product.png";
+
+  const title =
+    product?.title || "محصول بدون نام";
+
+  const price = Number(
+    product?.discounted_price ||
+      product?.base_price ||
+      0
+  );
+
+  const originalPrice = Number(
+    product?.base_price || 0
+  );
+
+  const discountPercent = Number(
+    product?.discount_percent || 0
+  );
+
+  const availableSizes = Array.isArray(
+    product?.sizes
+  )
+    ? product.sizes
+    : [];
+
+  const href = product?.slug
+    ? `/products/${product.slug}`
+    : "/products";
 
   return (
-    <div className="group/card relative w-[145px] sm:w-[165px] md:w-[180px] flex flex-col items-center gap-0 rounded-2xl bg-primary/5 p-2 border border-cart-boarder shadow-xs transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-primary/10 hover:border-[#e5c158] hover:shadow-md cursor-pointer select-none shrink-0">
-      {/* باکس تصویر: ابعاد نسبت ۱:۱ ثابت حفظ شده تا کوچک و دفرمه نشود */}
-      <div className="relative w-full aspect-square shrink-0 overflow-hidden rounded-xl bg-black/20 shadow-xs">
+    <div className="group/card relative flex w-[145px] shrink-0 cursor-pointer select-none flex-col items-center gap-0 rounded-2xl border border-cart-boarder bg-primary/5 p-2 shadow-xs transition-all duration-300 ease-out hover:-translate-y-1 hover:border-[#e5c158] hover:bg-primary/10 hover:shadow-md sm:w-[165px] md:w-[180px]">
+      {/* Discount */}
+      {discountPercent > 0 && (
+        <div className="absolute left-2 top-2 z-10 rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold text-white">
+          {discountPercent.toLocaleString("fa-IR")}٪
+        </div>
+      )}
+
+      {/* Image */}
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-black/20 shadow-xs">
         <Image
-          src={product.image}
-          alt={product.title}
+          src={image}
+          alt={title}
           fill
           className="object-cover transition-transform duration-500 group-hover/card:scale-105"
           sizes="(max-width: 640px) 145px, (max-width: 768px) 165px, 180px"
         />
       </div>
 
-      <div className="flex-1 w-full min-w-0 text-right flex flex-col justify-between gap-1 px-0.5 py-1 mt-1">
+      {/* Content */}
+      <div className="mt-1 flex w-full min-w-0 flex-1 flex-col justify-between gap-1 px-0.5 py-1 text-right">
         <div className="flex flex-col items-start space-y-1">
-          <h3 className="text-[11px] sm:text-xs font-bold text-product-title transition-colors group-hover/card:text-primary leading-tight line-clamp-2 break-words">
-            {product.title}
+          {/* Category */}
+          {product?.category_name && (
+            <span className="line-clamp-1 text-[7px] font-medium text-slate-400">
+              {product.category_name}
+            </span>
+          )}
+
+          {/* Title */}
+          <h3 className="line-clamp-2 break-words text-[11px] font-bold leading-tight text-product-title transition-colors group-hover/card:text-primary sm:text-xs">
+            {title}
           </h3>
-          <div className="flex flex-wrap items-center gap-0.5">
-            <span className="text-[7px] sm:text-[8px] font-bold text-slate-400">سایز:</span>
-            {availableSizes.slice(0, 3).map((size, index) => (
-              <span
-                key={index}
-                className="flex h-3.5 w-4 sm:h-4 sm:w-5 items-center justify-center rounded text-primary border border-secondary/10 bg-gray-200/60 backdrop-blur-md text-[7px] sm:text-[8px] font-bold shadow-2xs transition-colors cursor-default"
-              >
-                {size}
+
+          {/* Sizes */}
+          {availableSizes.length > 0 && (
+            <div className="flex flex-wrap items-center gap-0.5">
+              <span className="text-[7px] font-bold text-slate-400 sm:text-[8px]">
+                سایز:
               </span>
-            ))}
-          </div>
+
+              {availableSizes
+                .slice(0, 3)
+                .map((size, index) => (
+                  <span
+                    key={`${size}-${index}`}
+                    className="flex h-3.5 w-4 items-center justify-center rounded border border-secondary/10 bg-gray-200/60 text-[7px] font-bold text-primary shadow-2xs backdrop-blur-md sm:h-4 sm:w-5 sm:text-[8px]"
+                  >
+                    {typeof size === "object"
+                      ? size?.name ||
+                        size?.title ||
+                        size?.value
+                      : size}
+                  </span>
+                ))}
+            </div>
+          )}
         </div>
 
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-cart-boarder to-transparent my-0.5" />
+        <div className="my-0.5 h-px w-full bg-gradient-to-r from-transparent via-cart-boarder to-transparent" />
 
-        <div className="mt-0.5 flex items-end justify-between w-full">
+        {/* Price */}
+        <div className="mt-0.5 flex w-full items-end justify-between">
           <div className="flex flex-col items-start">
-            {product.originalPrice && (
-              <div className="flex items-center gap-1">
-                <span className="text-[9px] text-gray-400 font-bold line-through decoration-red-400/50 tabular-nums">
-                  {new Intl.NumberFormat("fa-IR").format(product.originalPrice)}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <span className="text-xs sm:text-sm font-black text-[#263238] tabular-nums tracking-tighter">
-                {new Intl.NumberFormat("fa-IR").format(product.price)}
+            {originalPrice > price && (
+              <span className="text-[9px] font-bold tabular-nums text-gray-400 line-through decoration-red-400/50">
+                {originalPrice.toLocaleString("fa-IR")}
               </span>
-              <span className="text-[8px] text-gray-500 font-bold">
+            )}
+
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-black tracking-tighter text-[#263238] tabular-nums sm:text-sm">
+                {price.toLocaleString("fa-IR")}
+              </span>
+
+              <span className="text-[8px] font-bold text-gray-500">
                 تومان
               </span>
             </div>
@@ -150,10 +195,15 @@ function ProductCard({ product }) {
             size="sm"
             icon={PlusIcon}
             iconPosition="left"
-            className="w-7 h-7 sm:w-8 sm:h-8 !p-0 rounded-md sm:rounded-lg flex items-center justify-center cursor-pointer shrink-0"
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md !p-0 sm:h-8 sm:w-8 sm:rounded-lg"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              console.log('افزودن به سبد خرید:', product.id);
+
+              console.log(
+                "افزودن به سبد خرید:",
+                product?.id
+              );
             }}
             aria-label="افزودن به سبد خرید"
           />
@@ -163,95 +213,259 @@ function ProductCard({ product }) {
   );
 }
 
+/* =========================================================
+   Wishlist Products Slider
+========================================================= */
+
 export default function WishlistProductsSlider() {
   const swiperRef = useRef(null);
-  const [swiperInstance, setSwiperInstance] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const swiperInstanceRef = useRef(null);
+
+  const [wishlistProducts, setWishlistProducts] =
+    useState([]);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  const [hasError, setHasError] =
+    useState(false);
+
+  /* =======================================================
+     دریافت Wishlist
+  ======================================================= */
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
+    let isMounted = true;
 
-    return () => clearTimeout(timer);
+    const loadWishlistProducts = async () => {
+      try {
+        setIsLoading(true);
+        setHasError(false);
+
+        if (typeof window === "undefined") {
+          return;
+        }
+
+        const accessToken =
+          localStorage.getItem("access_token") ||
+          localStorage.getItem("accessToken");
+
+        const refreshToken =
+          localStorage.getItem("refresh_token") ||
+          localStorage.getItem("refreshToken");
+
+        if (!accessToken && !refreshToken) {
+          if (isMounted) {
+            setWishlistProducts([]);
+            setIsLoading(false);
+          }
+
+          return;
+        }
+
+        /*
+         * API مستقیماً آرایه محصولات Wishlist
+         * را برمی‌گرداند.
+         */
+        const wishlistResponse =
+          await productApi.getWishlist();
+
+        const wishlistItems = Array.isArray(
+          wishlistResponse
+        )
+          ? wishlistResponse
+          : [];
+
+        if (isMounted) {
+          setWishlistProducts(wishlistItems);
+        }
+      } catch (error) {
+        console.error(
+          "خطا در دریافت لیست علاقه‌مندی‌ها:",
+          error
+        );
+
+        if (isMounted) {
+          setWishlistProducts([]);
+          setHasError(true);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadWishlistProducts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  /* =======================================================
+     Swiper
+  ======================================================= */
+
   useEffect(() => {
-    if (swiperRef.current && !swiperInstance && !isLoading) {
-      const swiper = new Swiper(swiperRef.current, {
-        slidesPerView: 'auto',
+    if (!swiperRef.current || isLoading) {
+      return;
+    }
+
+    if (swiperInstanceRef.current) {
+      swiperInstanceRef.current.destroy(
+        true,
+        true
+      );
+
+      swiperInstanceRef.current = null;
+    }
+
+    if (!wishlistProducts.length) {
+      return;
+    }
+
+    const swiper = new Swiper(
+      swiperRef.current,
+      {
+        slidesPerView: "auto",
         spaceBetween: 12,
         freeMode: true,
         freeModeMomentum: false,
         speed: 800,
         mousewheel: false,
+
         keyboard: {
           enabled: true,
         },
+
         touchRatio: 0.8,
         resistanceRatio: 0.5,
+
         breakpoints: {
-          320: { spaceBetween: 10 },
-          640: { spaceBetween: 12 },
-          768: { spaceBetween: 14 },
-          1024: { spaceBetween: 16 },
+          320: {
+            spaceBetween: 10,
+          },
+
+          640: {
+            spaceBetween: 12,
+          },
+
+          768: {
+            spaceBetween: 14,
+          },
+
+          1024: {
+            spaceBetween: 16,
+          },
         },
-      });
-      setSwiperInstance(swiper);
-    }
+      }
+    );
+
+    swiperInstanceRef.current = swiper;
 
     return () => {
-      if (swiperInstance) {
-        swiperInstance.destroy();
+      if (swiperInstanceRef.current) {
+        swiperInstanceRef.current.destroy(
+          true,
+          true
+        );
+
+        swiperInstanceRef.current = null;
       }
     };
-  }, [swiperInstance, isLoading]);
+  }, [isLoading, wishlistProducts]);
+
+  /* =======================================================
+     Render
+  ======================================================= */
 
   return (
     <section className="w-full space-y-3">
-      {/* هدر بخش لیست ذخیره‌شده‌ها */}
-      <div className="relative flex items-center gap-2 sm:gap-3 z-10 shrink-0 ">
-        <div className="w-8 h-9 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-primary to-rose-900 flex items-center justify-center shadow-xs shadow-amber-500/20 shrink-0">
-          <BookmarkIcon className="w-4 h-4 stroke-[2.2] text-amber-600" />
+      {/* Header */}
+      <div className="relative z-10 flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex h-9 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-rose-900 shadow-xs shadow-amber-500/20 sm:h-9 sm:w-9">
+          <BookmarkIcon className="h-4 w-4 stroke-[2.2] text-amber-600" />
         </div>
 
-        <div className="flex flex-col justify-center relative">
-          <span className="block text-[8px] sm:text-[9px] font-black tracking-widest text-primary/20 uppercase select-none font-serif truncate leading-tight">
+        <div className="relative flex flex-col justify-center">
+          <span className="block truncate font-serif text-[8px] font-black uppercase leading-tight tracking-widest text-primary/20 select-none sm:text-[9px]">
             YOUR WISHLIST
           </span>
 
-          <h2 className="text-xs sm:text-sm font-bold text-neutral-800 leading-tight">
-            <span className="text-[#332C2D]">محصولات موجود در </span>
-            <span className="text-primary text-xs sm:text-sm font-rokh font-bold inline-block">
+          <h2 className="text-xs font-bold leading-tight text-neutral-800 sm:text-sm">
+            <span className="text-[#332C2D]">
+              محصولات موجود در{" "}
+            </span>
+
+            <span className="font-rokh text-xs font-bold text-primary sm:text-sm">
               لیست شما
             </span>
           </h2>
         </div>
-
-        
       </div>
-      <Divider variant="gradient" color="primary" />
+
+      <Divider
+        variant="gradient"
+        color="primary"
+      />
+
+      {/* Products */}
       <div className="relative px-0.5 md:px-2">
-        <div 
-          ref={swiperRef}
-          className="overflow-hidden pb-2 pt-1"
-        >
-          <div className="swiper-wrapper">
-            {isLoading
-              ? Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="swiper-slide !w-auto">
-                    <ProductCardSkeleton />
-                  </div>
-                ))
-              : WISHLIST_PRODUCTS.map((product) => (
-                  <div key={product.id} className="swiper-slide !w-auto">
-                    <Link href={product.href}>
-                      <ProductCard product={product} />
-                    </Link>
-                  </div>
-                ))}
+        {isLoading ? (
+          <div className="flex gap-3 overflow-hidden pb-2 pt-1">
+            {Array.from({ length: 6 }).map(
+              (_, index) => (
+                <ProductCardSkeleton
+                  key={index}
+                />
+              )
+            )}
           </div>
-        </div>
+        ) : hasError ? (
+          <div className="flex min-h-[150px] items-center justify-center rounded-2xl border border-cart-boarder bg-primary/5">
+            <p className="text-xs font-bold text-gray-500 sm:text-sm">
+              دریافت لیست علاقه‌مندی‌ها با خطا
+              مواجه شد.
+            </p>
+          </div>
+        ) : !wishlistProducts.length ? (
+          <div className="flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-2xl border border-cart-boarder bg-primary/5">
+            <BookmarkIcon className="h-8 w-8 text-primary/40" />
+
+            <p className="text-xs font-bold text-gray-500 sm:text-sm">
+              هنوز محصولی به لیست علاقه‌مندی‌ها
+              اضافه نکرده‌اید.
+            </p>
+          </div>
+        ) : (
+          <div
+            ref={swiperRef}
+            className="overflow-hidden pb-2 pt-1"
+          >
+            <div className="swiper-wrapper">
+              {wishlistProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="swiper-slide !w-auto"
+                >
+                  <Link
+                    href={
+                      product?.slug
+                        ? `/products/${product.slug}`
+                        : "/products"
+                    }
+                    className="block"
+                  >
+                    <ProductCard
+                      product={product}
+                    />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

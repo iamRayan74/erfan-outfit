@@ -23,7 +23,7 @@ import {
 
 const NAV_ITEMS = [
   { href: '/deals', label: 'شگفت‌انگیزها', icon: FireIcon },
-  { href: '/best-sellers', label: 'پرفروش‌ترین‌ها', icon: SparklesIcon },
+  { href: '/products?ordering=-sales_count', label: 'پرفروش‌ترین‌ها', icon: SparklesIcon },
   { href: '/blog', label: 'وبلاگ', icon: BookOpenIcon },
   { href: '/about', label: 'درباره ما', icon: InformationCircleIcon },
   { href: '/contact', label: 'تماس باما', icon: PhoneIcon },

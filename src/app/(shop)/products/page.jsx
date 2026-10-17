@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoCameraIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import Sidebar from "@/features/products/components/sidebar/Sidebar";
@@ -12,6 +12,8 @@ import { useProductContext } from "@/features/products/hooks/useProductContext";
 
 function ProductsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeVideo, setActiveVideo] = useState(null);
 
   const {
@@ -36,15 +38,45 @@ function ProductsContent() {
     return `http://localhost:8000${url}`;
   };
 
-  // سینک کردن تمام پارامترهای URL با Context (با پشتیبانی کامل از q و search)
+  // ✅ تابع کمکی: ساخت و پوش کردن URL جدید
+  const pushFiltersToUrl = useCallback(
+    (patch) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.entries(patch).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      });
+
+      // حذف پارامترهای تکراری q/search
+      const q = params.get("q") || params.get("search");
+      if (q) {
+        params.set("q", q);
+      } else {
+        params.delete("q");
+        params.delete("search");
+      }
+
+      const newUrl = `${pathname}?${params.toString()}`;
+      router.push(newUrl, { scroll: false });
+    },
+    [searchParams, pathname, router]
+  );
+
+  // ✅ سینک کردن پارامترهای URL با Context
   useEffect(() => {
     const queryParam = searchParams.get("q") || searchParams.get("search") || "";
     const idsParam = searchParams.get("ids") || "";
     const categoryParam = searchParams.get("category") || "";
-    const sortParam = searchParams.get("ordering") || searchParams.get("sort") || "";
+    const sortParam =
+      searchParams.get("ordering") || searchParams.get("sort") || "";
     const minPriceParam = searchParams.get("price_min") || "";
     const maxPriceParam = searchParams.get("price_max") || "";
-    const colorsParam = searchParams.get("colors") || searchParams.get("color_ids") || "";
+    const colorsParam =
+      searchParams.get("colors") || searchParams.get("color_ids") || "";
     const sizesParam = searchParams.get("sizes") || "";
 
     const currentQ = filters.q ?? filters.search ?? "";
@@ -71,6 +103,7 @@ function ProductsContent() {
         sizes: sizesParam,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Infinite Scroll Observer
@@ -94,15 +127,44 @@ function ProductsContent() {
     };
   }, [hasMore, loading, loadingMore, loadMore]);
 
-  const handleSortChange = (newSort) => updateFilters({ ordering: newSort });
-  const handleCategoryChange = (slug) => updateFilters({ category: slug || "" });
-  const handleColorChange = (colorIds) => updateFilters({ colors: colorIds || "" });
-  const handleSizeChange = (sizeIds) => updateFilters({ sizes: sizeIds || "" });
+  // ✅ هندلرها: Context + URL
+  const handleSortChange = (newSort) => {
+    updateFilters({ ordering: newSort });
+    pushFiltersToUrl({ ordering: newSort });
+  };
+
+  const handleCategoryChange = (slug) => {
+    updateFilters({ category: slug || "" });
+    pushFiltersToUrl({ category: slug || "" });
+  };
+
+  const handleColorChange = (colorIds) => {
+    updateFilters({ colors: colorIds || "" });
+    pushFiltersToUrl({ colors: colorIds || "" });
+  };
+
+  const handleSizeChange = (sizeIds) => {
+    updateFilters({ sizes: sizeIds || "" });
+    pushFiltersToUrl({ sizes: sizeIds || "" });
+  };
+
   const handlePriceChange = (price) => {
-    updateFilters({
-      price_min: price?.min ?? "",
-      price_max: price?.max ?? "",
-    });
+    const min = price?.min ?? "";
+    const max = price?.max ?? "";
+    updateFilters({ price_min: min, price_max: max });
+    pushFiltersToUrl({ price_min: min, price_max: max });
+  };
+
+  // ✅ پاک کردن جستجو
+  const handleClearSearch = () => {
+    updateFilters({ q: "", search: "" });
+    pushFiltersToUrl({ q: "", search: "" });
+  };
+
+  // ✅ ریست کامل فیلترها + پاک کردن URL
+  const handleResetAllFilters = () => {
+    resetFilters();
+    router.push(pathname, { scroll: false });
   };
 
   const searchQuery = searchParams.get("q") || searchParams.get("search");
@@ -122,7 +184,7 @@ function ProductsContent() {
             onColorChange={handleColorChange}
             onPriceChange={handlePriceChange}
             onSizeChange={handleSizeChange}
-            onResetFilters={resetFilters}
+            onResetFilters={handleResetAllFilters}
           />
         </div>
 
@@ -131,11 +193,14 @@ function ProductsContent() {
           {searchQuery && (
             <div className="mb-4 p-4 bg-white rounded-2xl border border-stone-200 shadow-sm text-sm font-bold text-stone-700 flex items-center justify-between">
               <div>
-                نتایج جستجو برای: <span className="text-primary font-black">«{searchQuery}»</span>
+                نتایج جستجو برای:{" "}
+                <span className="text-primary font-black">
+                  «{searchQuery}»
+                </span>
               </div>
               <button
                 type="button"
-                onClick={() => updateFilters({ q: "", search: "" })}
+                onClick={handleClearSearch}
                 className="text-xs text-rose-500 hover:underline font-normal cursor-pointer"
               >
                 پاک کردن جستجو
@@ -206,9 +271,7 @@ function ProductsContent() {
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* مودال ویدیو مخصوص حالت موبایل */}
-      {/* ========================================== */}
+      {/* مودال ویدیو موبایل */}
       <AnimatePresence>
         {activeVideo && (
           <div className="lg:hidden fixed inset-0 z-50 flex items-center justify-center p-4">

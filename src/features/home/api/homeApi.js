@@ -1,58 +1,69 @@
-import baseApi from "@/lib/baseApi"; // یا مسیر دقیق فایل baseApi در پروژه شما
+import baseApi from "@/lib/baseApi";
 
 /**
- * ۱. دریافت پیشنهادهای شگفت‌انگیز (Amazing Offers)
- * مربوط به کامپوننت: AmazingProducts.jsx
- * @param {Object} params
- * @param {number} [params.limit=8] - تعداد محصولات پیشنهادی
+ * دریافت محصولات شگفت‌انگیز
  */
 export const getAmazingProducts = async (params = {}) => {
-  return await baseApi.get("/catalog/products/amazing-offers/", {
-    params: {
-      limit: 8,
-      ...params,
-    },
-  });
+  return await baseApi.get(
+    "/catalog/products/amazing-offers/",
+    {
+      params: {
+        limit: 8,
+        ...params,
+      },
+    }
+  );
 };
 
 /**
- * ۲. دریافت پرفروش‌ترین محصولات (Best Sellers)
- * مربوط به کامپوننت: BestSellingProducts.jsx
- * @param {Object} params
- * @param {number} [params.limit=4] - تعداد محصولات پرفروش
+ * دریافت پرفروش‌ترین محصولات
  */
-export const getBestSellingProducts = async (params = {}) => {
-  return await baseApi.get("/catalog/products/bestsellers/", {
-    params: {
-      limit: 4,
-      ...params,
-    },
-  });
+export const getBestSellingProducts = async (
+  params = {}
+) => {
+  return await baseApi.get(
+    "/catalog/products/bestsellers/",
+    {
+      params: {
+        limit: 4,
+        ...params,
+      },
+    }
+  );
 };
 
 /**
- * ۳. دریافت پیشنهاد‌های لحظه‌ای (Instant Offers)
- * مربوط به کامپوننت: InstantOffers.jsx
+ * دریافت پیشنهادهای لحظه‌ای
  */
 export const getInstantOffers = async () => {
-  return await baseApi.get("/catalog/products/instant-offers/");
+  return await baseApi.get(
+    "/catalog/products/instant-offers/"
+  );
 };
 
 /**
- * ۴. دریافت جدیدترین محصولات و دسته‌بندی‌ها (Latest Products & Categories)
- * مربوط به کامپوننت: LatestProducts_2.jsx
- * @param {Object} params
- * @param {string} [params.category='all'] - شناسه دسته‌بندی (coat, dress, pants, all)
- * @param {number} [params.page=1] - شماره صفحه
- * @param {number} [params.limit=6] - تعداد در هر صفحه
+ * دریافت جدیدترین محصولات
+ *
+ * category:
+ * all
+ * men-clothing
+ * women-clothing
+ * bags-shoes
+ * kids-clothing
+ * accessories
  */
-export const getLatestProducts = async (params = {}) => {
-  return await baseApi.get("/catalog/products/latest/", {
-    params: {
-      category: "all",
-      page: 1,
-      limit: 6,
-      ...params,
-    },
-  });
+export const getLatestProducts = async (
+  params = {}
+) => {
+  return await baseApi.get(
+    "/catalog/products/latest/",
+    {
+      params: {
+        category: "all",
+        page: 1,
+        limit: 6,
+        ...params,
+      },
+    }
+  );
 };

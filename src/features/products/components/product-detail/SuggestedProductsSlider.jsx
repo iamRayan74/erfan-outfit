@@ -11,86 +11,27 @@ import {
 } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
+import { productApi } from "../../api/productApi";
 import Swiper from "swiper";
 import "swiper/css";
 
-// نمونه داده‌های محصولات پیشنهادی
-const SUGGESTED_PRODUCTS = [
-  {
-    id: "1",
-    title: "هودی دورس اسپرت مردانه",
-    price: 690000,
-    originalPrice: 850000,
-    image: "/images/products/hoodie.png",
-    href: "/products/men-hoodie",
-    sizes: ["S", "M", "L", "XL"],
-  },
-  {
-    id: "2",
-    title: "تیشرت یقه‌گرد جینبی",
-    price: 390000,
-    originalPrice: 520000,
-    image: "/images/products/tshirt.png",
-    href: "/products/men-tshirt",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-  },
-  {
-    id: "3",
-    title: "شلوار جین اسلیم فیت",
-    price: 850000,
-    originalPrice: 1200000,
-    image: "/images/products/jeans.png",
-    href: "/products/jeans",
-    sizes: ["28", "30", "32", "34", "36"],
-  },
-  {
-    id: "4",
-    title: "کت اسپرت مردانه پاییزه",
-    price: 1250000,
-    originalPrice: 1680000,
-    image: "/images/products/jacket.png",
-    href: "/products/jacket",
-    sizes: ["M", "L", "XL", "XXL"],
-  },
-  {
-    id: "5",
-    title: "پیراهن مجلسی مردانه",
-    price: 750000,
-    originalPrice: 980000,
-    image: "/images/products/shirt.png",
-    href: "/products/shirt",
-    sizes: ["S", "M", "L", "XL"],
-  },
-  {
-    id: "6",
-    title: "شلوارک اسپرت مردانه",
-    price: 450000,
-    originalPrice: 620000,
-    image: "/images/products/shorts.png",
-    href: "/products/shorts",
-    sizes: ["S", "M", "L", "XL"],
-  },
-  {
-    id: "7",
-    title: "تیشرت یقه‌هفت زنانه",
-    price: 350000,
-    originalPrice: 480000,
-    image: "/images/products/wtshirt.png",
-    href: "/products/women-tshirt",
-    sizes: ["XS", "S", "M", "L", "XL"],
-  },
-  {
-    id: "8",
-    title: "هودی کشیده زنانه کاپشن",
-    price: 890000,
-    originalPrice: 1200000,
-    image: "/images/products/whoodie.png",
-    href: "/products/women-hoodie",
-    sizes: ["XS", "S", "M", "L"],
-  },
-];
+function mapApiProduct(item) {
+  const hasDiscount = Number(item.discount_percent) > 0;
+  return {
+    id: item.id,
+    title: item.title,
+    price: Number(item.discounted_price || item.base_price || 0),
+    originalPrice: hasDiscount ? Number(item.base_price) : null,
+    image:
+      item?.main_image ||
+      item?.image ||
+      item?.variants?.[0]?.image ||
+      "/images/products/placeholder.png",
+    href: `/products/${item.slug}`,
+    sizes: item.sizes || [],
+  };
+}
 
-// کامپوننت اسکلتون کارت محصول
 function ProductCardSkeleton() {
   return (
     <div className="w-[170px] xs:w-[185px] sm:w-[200px] md:w-[215px] lg:w-[230px] flex flex-col items-center gap-0 rounded-[1.5rem] bg-primary/5 p-2 border border-cart-boarder shadow-md">
@@ -119,9 +60,8 @@ function ProductCardSkeleton() {
   );
 }
 
-// کامپوننت کارت محصول
 function ProductCard({ product }) {
-  const availableSizes = product.sizes || ["S", "M", "L", "XL"];
+  const availableSizes = product.sizes || [];
 
   return (
     <div className="group/card relative w-[170px] xs:w-[185px] sm:w-[200px] md:w-[215px] lg:w-[230px] flex flex-col items-center gap-0 rounded-[1.5rem] bg-primary/5 p-2 border border-cart-boarder shadow-md transition-all duration-500 ease-out hover:-translate-y-1 hover:bg-primary/10 hover:border-[#e5c158] hover:shadow-[0_15px_30px_-12px_rgba(229,193,88,0.25)] cursor-pointer">
@@ -140,19 +80,23 @@ function ProductCard({ product }) {
           <h3 className="text-xs sm:text-sm md:text-base font-bold text-product-title transition-colors group-hover/card:text-primary leading-snug line-clamp-2 break-words">
             {product.title}
           </h3>
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="text-[8px] lg:text-[9px] font-bold text-slate-400">سایزها:</span>
-            {availableSizes.slice(0, 4).map((size, index) => (
-              <span
-                key={index}
-                className="flex h-4 w-5 lg:h-[22px] lg:w-[26px] items-center justify-center rounded-md lg:rounded-lg text-primary border border-secondary/10 bg-gray-200/60 backdrop-blur-md text-[8px] lg:text-[10px] font-bold shadow-sm transition-colors cursor-default"
-              >
-                {size}
+          {availableSizes.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-[8px] lg:text-[9px] font-bold text-slate-400">
+                سایزها:
               </span>
-            ))}
-          </div>
+              {availableSizes.slice(0, 4).map((size, index) => (
+                <span
+                  key={index}
+                  className="flex h-4 w-5 lg:h-[22px] lg:w-[26px] items-center justify-center rounded-md lg:rounded-lg text-primary border border-secondary/10 bg-gray-200/60 backdrop-blur-md text-[8px] lg:text-[10px] font-bold shadow-sm transition-colors cursor-default"
+                >
+                  {size}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        
+
         <div className="h-px w-full bg-gradient-to-r from-transparent via-cart-boarder to-transparent" />
 
         <div className="mt-1.5 flex items-end justify-between w-full">
@@ -168,9 +112,7 @@ function ProductCard({ product }) {
               <span className="text-lg sm:text-xl font-black text-[#263238] tabular-nums tracking-tighter">
                 {new Intl.NumberFormat("fa-IR").format(product.price)}
               </span>
-              <span className="text-[10px] text-gray-500 font-bold">
-                تومان
-              </span>
+              <span className="text-[10px] text-gray-500 font-bold">تومان</span>
             </div>
           </div>
 
@@ -181,8 +123,9 @@ function ProductCard({ product }) {
             iconPosition="left"
             className="w-8 h-8 sm:w-10 sm:h-10 !p-0 rounded-md sm:rounded-lg flex items-center justify-center cursor-pointer"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              console.log('افزودن به سبد خرید:', product.id);
+              console.log("افزودن به سبد خرید:", product.id);
             }}
             aria-label="افزودن به سبد خرید"
           />
@@ -192,31 +135,52 @@ function ProductCard({ product }) {
   );
 }
 
-export default function SuggestedProductsSlider() {
+export default function SuggestedProductsSlider({ slug, limit = 6 }) {
   const swiperRef = useRef(null);
   const [swiperInstance, setSwiperInstance] = useState(null);
+  const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
+    if (!slug) return;
+    let cancelled = false;
 
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchSuggested = async () => {
+      setIsLoading(true);
+      try {
+        const res = await productApi.getSuggestedProducts(slug, limit);
+        const items =
+          res?.data?.items ||
+          res?.results ||
+          res?.data?.results ||
+          (Array.isArray(res) ? res : []);
+
+        if (cancelled) return;
+        setProducts(Array.isArray(items) ? items.map(mapApiProduct) : []);
+      } catch (err) {
+        console.error("[SUGGESTED PRODUCTS]", err);
+        if (!cancelled) setProducts([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    fetchSuggested();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, limit]);
 
   useEffect(() => {
-    if (swiperRef.current && !swiperInstance && !isLoading) {
+    if (swiperRef.current && !swiperInstance && !isLoading && products.length > 0) {
       const swiper = new Swiper(swiperRef.current, {
-        slidesPerView: 'auto',
+        slidesPerView: "auto",
         spaceBetween: 20,
         freeMode: true,
         freeModeMomentum: false,
         speed: 800,
         mousewheel: false,
-        keyboard: {
-          enabled: true,
-        },
+        keyboard: { enabled: true },
         touchRatio: 0.8,
         resistanceRatio: 0.5,
         breakpoints: {
@@ -234,24 +198,16 @@ export default function SuggestedProductsSlider() {
         swiperInstance.destroy();
       }
     };
-  }, [swiperInstance, isLoading]);
+  }, [swiperInstance, isLoading, products.length]);
 
-  const handlePrev = () => {
-    if (swiperInstance) {
-      swiperInstance.slidePrev(800);
-    }
-  };
+  const handlePrev = () => swiperInstance?.slidePrev(800);
+  const handleNext = () => swiperInstance?.slideNext(800);
 
-  const handleNext = () => {
-    if (swiperInstance) {
-      swiperInstance.slideNext(800);
-    }
-  };
+  if (!isLoading && products.length === 0) return null;
 
   return (
     <section className="w-full pt-6 space-y-4">
-      {/* هدر کامپوننت پیشنهاد شده با گرادینت و آیکون متمایز */}
-      <div className="relative flex items-center gap-2.5 sm:gap-3.5 z-10 shrink-0  pb-2 border-b border-cart-boarder/60">
+      <div className="relative flex items-center gap-2.5 sm:gap-3.5 z-10 shrink-0 pb-2 border-b border-cart-boarder/60">
         <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-md sm:rounded-2xl bg-gradient-to-tr from-primary to-rose-900 flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
           <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2] text-amber-600" />
         </div>
@@ -273,12 +229,8 @@ export default function SuggestedProductsSlider() {
         </div>
       </div>
 
-      <div className="relative px-0.5 md:px-3  lg:px-12">
-        {/* اسلایدر با Swiper */}
-        <div 
-          ref={swiperRef}
-          className="overflow-hidden pb-3 pt-1"
-        >
+      <div className="relative px-0.5 md:px-3 lg:px-12">
+        <div ref={swiperRef} className="overflow-hidden pb-3 pt-1">
           <div className="swiper-wrapper">
             {isLoading
               ? Array.from({ length: 6 }).map((_, index) => (
@@ -286,7 +238,7 @@ export default function SuggestedProductsSlider() {
                     <ProductCardSkeleton />
                   </div>
                 ))
-              : SUGGESTED_PRODUCTS.map((product) => (
+              : products.map((product) => (
                   <div key={product.id} className="swiper-slide !w-auto">
                     <Link href={product.href}>
                       <ProductCard product={product} />
@@ -296,7 +248,6 @@ export default function SuggestedProductsSlider() {
           </div>
         </div>
 
-        {/* دکمه‌های ناوبری */}
         <div className="flex items-center justify-center gap-4 mt-6">
           <button
             onClick={handlePrev}

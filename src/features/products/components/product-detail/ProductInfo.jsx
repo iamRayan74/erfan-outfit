@@ -15,13 +15,7 @@ import "swiper/css";
 
 import SizeGuideModal from "./SizeGuideModal";
 import SpecialOffersBox from "./SpecialOffersBox";
-
-const PERFORMANCE_LABELS = {
-  excellent: "عالی",
-  good: "خوب",
-  average: "متوسط",
-  poor: "ضعیف",
-};
+import { productApi } from "../../api/productApi";
 
 function toFa(n) {
   if (n === null || n === undefined) return "";
@@ -40,13 +34,22 @@ export default function ProductInfo({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // ✅ state برای آمار نظرات
+  const [reviewStats, setReviewStats] = useState({
+    count: product?.reviews_count || 0,
+    average: Number(product?.rating) || 0,
+  });
+
+  // ✅ state برای تعداد پرسش‌ها
+  const [questionStats, setQuestionStats] = useState({
+    count: product?.questions_count || 0,
+  });
+
   const containerRef = useRef(null);
   const wavesurferRef = useRef(null);
 
-  // ------- استخراج داده‌های داینامیک -------
   const variants = product?.variants || [];
 
-  // رنگ‌های یکتا از واریانت‌ها
   const uniqueColors = useMemo(() => {
     const map = new Map();
     variants.forEach((v) => {
@@ -57,14 +60,12 @@ export default function ProductInfo({
     return Array.from(map.values());
   }, [variants]);
 
-  // سایزهای یکتا از واریانت‌ها
   const allSizes = useMemo(() => {
     const set = new Set();
     variants.forEach((v) => (v.sizes || []).forEach((s) => set.add(s)));
     return Array.from(set);
   }, [variants]);
 
-  // واریانت انتخاب‌شده
   const selectedVariant = useMemo(() => {
     if (!selectedColorId && !selectedSize) return variants[0] || null;
     return (
@@ -78,7 +79,6 @@ export default function ProductInfo({
     );
   }, [variants, selectedColorId, selectedSize]);
 
-  // مقدار پیش‌فرض انتخاب‌ها
   useEffect(() => {
     if (!selectedColorId && uniqueColors.length > 0) {
       setSelectedColorId(uniqueColors[0].name);
@@ -88,7 +88,6 @@ export default function ProductInfo({
     }
   }, [uniqueColors, allSizes, selectedColorId, selectedSize]);
 
-  // اطلاع به والد
   useEffect(() => {
     if (onVariantChange && selectedVariant) {
       onVariantChange(selectedVariant);
@@ -96,8 +95,75 @@ export default function ProductInfo({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVariant?.id]);
 
+  // ✅ گرفتن دیدگاه‌ها و محاسبه میانگین + تعداد
+  useEffect(() => {
+    if (!product?.slug) return;
+    let cancelled = false;
+
+    const fetchReviewStats = async () => {
+      try {
+        const res = await productApi.getProductReviews(product.slug);
+        const items =
+          res?.data?.items ||
+          res?.results ||
+          res?.data?.results ||
+          (Array.isArray(res) ? res : []);
+
+        if (cancelled || !Array.isArray(items)) return;
+
+        const count = items.length;
+        const totalRating = items.reduce(
+          (sum, r) => sum + (Number(r.rating) || 0),
+          0
+        );
+        const average = count > 0 ? totalRating / count : 0;
+
+        setReviewStats({
+          count,
+          average: Math.round(average * 10) / 10,
+        });
+      } catch (err) {
+        console.error("[REVIEW STATS]", err);
+      }
+    };
+
+    fetchReviewStats();
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.slug]);
+
+  // ✅ گرفتن پرسش‌ها و محاسبه تعداد
+  useEffect(() => {
+    if (!product?.slug) return;
+    let cancelled = false;
+
+    const fetchQuestionStats = async () => {
+      try {
+        const res = await productApi.getProductQuestions(product.slug);
+        const items =
+          res?.data?.items ||
+          res?.results ||
+          res?.data?.results ||
+          (Array.isArray(res) ? res : []);
+
+        if (cancelled || !Array.isArray(items)) return;
+
+        setQuestionStats({ count: items.length });
+      } catch (err) {
+        console.error("[QUESTION STATS]", err);
+      }
+    };
+
+    fetchQuestionStats();
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.slug]);
+
   // ------- Audio -------
-  const currentAudioUrl = audioSrc || product?.ai?.audio_url || "/assets/Almaxanim.mp3";
+  const currentAudioUrl =
+    audioSrc || product?.ai?.audio_url || "/assets/Almaxanim.mp3";
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -132,10 +198,24 @@ export default function ProductInfo({
 
   const handleShowMoreClick = () => {
     if (onShowMoreFeatures) onShowMoreFeatures();
-    else document.getElementById("product-description")?.scrollIntoView({ behavior: "smooth" });
+    else
+      document
+        .getElementById("product-description")
+        ?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // ------- ویژگی‌ها از بک‌اند -------
+  const handleOpenReviews = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("product:openReviews"));
+    }
+  };
+
+  const handleOpenQuestions = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("product:openQuestions"));
+    }
+  };
+
   const features = useMemo(() => {
     const list = product?.attributes || [];
     return list.map((a) => ({ title: a.key, value: a.value }));
@@ -166,30 +246,42 @@ export default function ProductInfo({
 
       <Divider variant="gradient" color="primary" />
 
-      {/* امتیاز و نظرات */}
+      {/* ✅ امتیاز و نظرات با داده واقعی */}
       <div className="flex items-center gap-3 text-xs text-gray-500">
         <span className="text-amber-500 font-bold flex items-center gap-1">
           <StarIcon className="w-4 h-4 text-amber-400" />
           <span className="text-text-primary">
-            {toFa(product?.rating) || "۰.۰"}{" "}
+            {reviewStats.average > 0
+              ? reviewStats.average.toLocaleString("fa-IR", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })
+              : "۰.۰"}
           </span>
           <span className="text-gray-400 font-normal">
-            (امتیاز {toFa(product?.rating_count || 0)} خریدار)
+            (امتیاز {toFa(product?.rating_count || reviewStats.count)} خریدار)
           </span>
         </span>
 
-        <button className="flex items-center justify-center text-xs font-bold text-primary bg-primary/5 border border-primary/10 px-2.5 py-1 rounded-full hover:bg-primary-hover/10 transition-colors cursor-pointer">
-          {toFa(product?.reviews_count || 0)} دیدگاه
+        <button
+          type="button"
+          onClick={handleOpenReviews}
+          className="flex items-center justify-center text-xs font-bold text-primary bg-primary/5 border border-primary/10 px-2.5 py-1 rounded-full hover:bg-primary-hover/10 transition-colors cursor-pointer"
+        >
+          {toFa(reviewStats.count)} دیدگاه
         </button>
-        <button className="flex items-center justify-center text-xs font-bold text-primary bg-primary/5 border border-primary/10 px-2.5 py-1 rounded-full hover:bg-primary-hover/10 transition-colors cursor-pointer">
-          {toFa(product?.questions_count || 0)} پرسش
+
+        <button
+          type="button"
+          onClick={handleOpenQuestions}
+          className="flex items-center justify-center text-xs font-bold text-primary bg-primary/5 border border-primary/10 px-2.5 py-1 rounded-full hover:bg-primary-hover/10 transition-colors cursor-pointer"
+        >
+          {toFa(questionStats.count)} پرسش
         </button>
       </div>
 
-        {/* رنگ و سایز موبایل */}
+      {/* رنگ و سایز موبایل */}
       <div className="block lg:hidden">
-            
-        {/* انتخاب رنگ */}
         {uniqueColors.length > 0 && (
           <div className="pt-2">
             <div className="flex items-center gap-2 mb-2">
@@ -222,7 +314,6 @@ export default function ProductInfo({
           </div>
         )}
 
-        {/* انتخاب سایز */}
         {allSizes.length > 0 && (
           <div className="pt-2 border-t border-gray-100">
             <div className="flex items-center justify-between mb-2">
@@ -294,8 +385,6 @@ export default function ProductInfo({
 
       {/* رنگ و سایز دسکتاپ */}
       <div className="hidden lg:block">
-            
-        {/* انتخاب رنگ */}
         {uniqueColors.length > 0 && (
           <div className="pt-2">
             <div className="flex items-center gap-2 mb-2">
@@ -328,7 +417,6 @@ export default function ProductInfo({
           </div>
         )}
 
-        {/* انتخاب سایز */}
         {allSizes.length > 0 && (
           <div className="pt-2 border-t border-gray-100">
             <div className="flex items-center justify-between mb-2">
@@ -367,11 +455,18 @@ export default function ProductInfo({
           <span className="font-bold text-sm block mb-3">ویژگی‌ها</span>
 
           <div className="block lg:hidden">
-            <Swiper spaceBetween={8} slidesPerView={2.2} grabCursor className="w-full !py-1">
+            <Swiper
+              spaceBetween={8}
+              slidesPerView={2.2}
+              grabCursor
+              className="w-full !py-1"
+            >
               {features.map((item, index) => (
                 <SwiperSlide key={index}>
                   <div className="bg-surface border border-cart-boarder backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] rounded-xl p-3 h-full">
-                    <span className="text-xs text-gray-400 block mb-1">{item.title}</span>
+                    <span className="text-xs text-gray-400 block mb-1">
+                      {item.title}
+                    </span>
                     <span className="text-xs font-bold text-gray-700 block truncate">
                       {item.value}
                     </span>
@@ -391,8 +486,12 @@ export default function ProductInfo({
                 key={index}
                 className="bg-surface border border-cart-boarder backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] rounded-xl p-3"
               >
-                <span className="text-xs text-gray-400 block mb-1">{item.title}</span>
-                <span className="text-xs font-bold text-gray-700 block">{item.value}</span>
+                <span className="text-xs text-gray-400 block mb-1">
+                  {item.title}
+                </span>
+                <span className="text-xs font-bold text-gray-700 block">
+                  {item.value}
+                </span>
               </div>
             ))}
           </div>

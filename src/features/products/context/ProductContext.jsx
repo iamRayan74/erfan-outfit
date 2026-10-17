@@ -12,23 +12,21 @@ const CACHE_KEYS = {
 };
 
 // مدت زمان اعتبار کَش (۱ ساعت)
-const CACHE_TTL = 60 * 60 * 1000; 
+const CACHE_TTL = 60 * 60 * 1000;
 
 // تابع کمکی برای استخراج متنی و امن پیام خطا
 function getErrorMessage(err, fallbackMessage) {
   if (typeof err === "string") return err;
   if (!err) return fallbackMessage;
 
-  // اگر خطا از سمت Axios/baseApi باشد
-  if (err.message && err.message !== 'خطایی در برقراری ارتباط رخ داد.') {
+  if (err.message && err.message !== "خطایی در برقراری ارتباط رخ داد.") {
     return err.message;
   }
-  
+
   if (err.response?.data?.detail) {
     return err.response.data.detail;
   }
 
-  // در صورت قطعی شبکه یا عدم دریافت status
   if (err.status === undefined && (!err.response || err.code === "ERR_NETWORK")) {
     return "ارتباط با سرور برقرار نشد. لطفاً از اتصال اینترنت یا فعال بودن سرور مطمئن شوید.";
   }
@@ -133,7 +131,7 @@ export function ProductProvider({ children }) {
     }
   }, []);
 
-  // --- دریافت محصولات با مدیریت خطا و داده ---
+  // --- دریافت محصولات ---
   const fetchProducts = useCallback(async (targetFilters) => {
     const isFirstPage = !targetFilters.page || Number(targetFilters.page) === 1;
 
@@ -186,21 +184,25 @@ export function ProductProvider({ children }) {
     }
   }, []);
 
-  const updateFilters = useCallback((newFilters) => {
-    setFilters((prev) => {
-      const isPageOnlyChange = Object.keys(newFilters).length === 1 && "page" in newFilters;
-      const updatedPage = isPageOnlyChange ? (newFilters.page || 1) : 1;
+  const updateFilters = useCallback(
+    (newFilters) => {
+      setFilters((prev) => {
+        const isPageOnlyChange =
+          Object.keys(newFilters).length === 1 && "page" in newFilters;
+        const updatedPage = isPageOnlyChange ? newFilters.page || 1 : 1;
 
-      const nextFilters = {
-        ...prev,
-        ...newFilters,
-        page: updatedPage,
-      };
+        const nextFilters = {
+          ...prev,
+          ...newFilters,
+          page: updatedPage,
+        };
 
-      fetchProducts(nextFilters);
-      return nextFilters;
-    });
-  }, [fetchProducts]);
+        fetchProducts(nextFilters);
+        return nextFilters;
+      });
+    },
+    [fetchProducts]
+  );
 
   const loadMore = useCallback(() => {
     if (!loadingMore && !loading && hasMore) {
@@ -244,18 +246,35 @@ export function ProductProvider({ children }) {
     }
   }, []);
 
+  // ✅ ثبت دیدگاه
   const submitReview = async (slug, payload) => {
+    if (!slug) throw new Error("شناسه محصول (slug) یافت نشد.");
     return await productApi.submitProductReview(slug, payload);
   };
 
+  // ✅ ثبت پرسش
   const submitQuestion = async (slug, payload) => {
+    if (!slug) throw new Error("شناسه محصول (slug) یافت نشد.");
     return await productApi.submitProductQuestion(slug, payload);
+  };
+
+  // ✅ لایک نظر
+  const likeReview = async (reviewId) => {
+    if (!reviewId) throw new Error("شناسه نظر یافت نشد.");
+    return await productApi.likeReview(reviewId);
+  };
+
+  // ✅ دیسلایک نظر
+  const unlikeReview = async (reviewId) => {
+    if (!reviewId) throw new Error("شناسه نظر یافت نشد.");
+    return await productApi.unlikeReview(reviewId);
   };
 
   useEffect(() => {
     fetchCategories();
     fetchCollections();
     fetchProducts(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -281,6 +300,8 @@ export function ProductProvider({ children }) {
         loadMore,
         submitReview,
         submitQuestion,
+        likeReview,
+        unlikeReview,
       }}
     >
       {children}
