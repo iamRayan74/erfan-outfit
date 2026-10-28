@@ -20,13 +20,13 @@ export const getFeaturedArticle = async () => {
 
 export const getArticleBySlug = async (slug) => {
   return await baseApi.get(
-    `/blog/articles/${encodeURIComponent(slug)}/`
+    `/blog/articles/${slug}/`
   );
 };
 
 export const registerArticleView = async (slug) => {
   return await baseApi.post(
-    `/blog/articles/${encodeURIComponent(slug)}/view/`,
+    `/blog/articles/${slug}/view/`,
     {}
   );
 };

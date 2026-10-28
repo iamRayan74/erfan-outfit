@@ -9,7 +9,7 @@ export default function Skeleton({
 
   return (
     <div
-      className={`relative overflow-hidden bg-slate-200/80 ${variantClasses} ${className}`}
+      className={`relative overflow-hidden bg-slate-200 ${variantClasses} ${className}`}
       {...props}
     >
       {/* لایه موج نوری متحرک (Shimmer Effect) */}

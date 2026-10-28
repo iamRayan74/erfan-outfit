@@ -1,4 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import {
   getAmazingProducts,
@@ -10,10 +13,19 @@ import {
 function extractData(res) {
   if (!res) return null;
 
-  return res.data !== undefined
-    ? res.data
-    : res;
+  return res.data !== undefined ? res.data : res;
 }
+
+const EMPTY_LATEST = {
+  targetDate: null,
+  products: [],
+};
+
+const EMPTY_INSTANT_OFFERS = {
+  targetDate: null,
+  offers: [],
+  quickAccess: [],
+};
 
 export function useHomeData() {
   const [amazingData, setAmazingData] = useState({
@@ -21,274 +33,171 @@ export function useHomeData() {
     products: [],
   });
 
-  const [bestSellingData, setBestSellingData] =
-    useState([]);
+  const [bestSellingData, setBestSellingData] = useState([]);
+  const [instantOffersData, setInstantOffersData] = useState(
+    EMPTY_INSTANT_OFFERS
+  );
+  const [latestData, setLatestData] = useState(EMPTY_LATEST);
 
-  const [instantOffersData, setInstantOffersData] =
-    useState({
-      targetDate: null,
-      offers: [],
-      quickAccess: [],
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [latestPage, setLatestPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLatestLoading, setIsLatestLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const latestRequestId = useRef(0);
+
+  // دریافت اولیه اطلاعات به‌صورت موازی
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchInitialData() {
+      setIsLoading(true);
+      setError(null);
+
+      const results = await Promise.allSettled([
+        getAmazingProducts(),
+        getBestSellingProducts(),
+        getInstantOffers(),
+        getLatestProducts({
+          category: "all",
+          page: 1,
+          limit: 6,
+        }),
+      ]);
+
+      if (cancelled) return;
+
+      const [amazingRes, bestSellingRes, instantRes, latestRes] =
+        results;
+
+      if (amazingRes.status === "fulfilled") {
+        setAmazingData(
+          extractData(amazingRes.value) ?? {
+            targetDate: null,
+            products: [],
+          }
+        );
+      }
+
+      if (bestSellingRes.status === "fulfilled") {
+        const data = extractData(bestSellingRes.value);
+
+        setBestSellingData(
+          data?.products ?? (Array.isArray(data) ? data : [])
+        );
+      }
+
+      if (instantRes.status === "fulfilled") {
+        setInstantOffersData(
+          extractData(instantRes.value) ?? EMPTY_INSTANT_OFFERS
+        );
+      }
+
+      if (latestRes.status === "fulfilled") {
+        const data = extractData(latestRes.value);
+
+        setLatestData({
+          targetDate: data?.targetDate ?? null,
+          products: Array.isArray(data?.products)
+            ? data.products
+            : [],
+        });
+      }
+
+      const failures = results.filter(
+        (result) => result.status === "rejected"
+      );
+
+      if (failures.length === results.length) {
+        setError(failures[0].reason);
+      }
+
+      setIsLoading(false);
+    }
+
+    fetchInitialData().catch((err) => {
+      if (cancelled) return;
+
+      setError(err);
+      setIsLoading(false);
     });
 
-  const [latestData, setLatestData] = useState({
-    targetDate: null,
-    products: [],
-  });
-
-  const [selectedCategory, setSelectedCategory] =
-    useState("all");
-
-  const [latestPage, setLatestPage] =
-    useState(1);
-
-  const [isLoading, setIsLoading] =
-    useState(true);
-
-  const [isLatestLoading, setIsLatestLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState(null);
-
-  // =========================================================
-  // Initial data
-  // =========================================================
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setIsLoading(true);
-
-        const results =
-          await Promise.allSettled([
-            getAmazingProducts(),
-            getBestSellingProducts(),
-            getInstantOffers(),
-            getLatestProducts({
-              category: "all",
-              page: 1,
-              limit: 6,
-            }),
-          ]);
-
-        const [
-          amazingRes,
-          bestSellingRes,
-          instantRes,
-          latestRes,
-        ] = results;
-
-        // Amazing
-        if (
-          amazingRes.status === "fulfilled"
-        ) {
-          const data =
-            extractData(amazingRes.value);
-
-          setAmazingData(
-            data || {
-              targetDate: null,
-              products: [],
-            }
-          );
-        }
-
-        // Best Selling
-        if (
-          bestSellingRes.status === "fulfilled"
-        ) {
-          const data =
-            extractData(bestSellingRes.value);
-
-          setBestSellingData(
-            data?.products ||
-              (Array.isArray(data)
-                ? data
-                : [])
-          );
-        }
-
-        // Instant Offers
-        if (
-          instantRes.status === "fulfilled"
-        ) {
-          const data =
-            extractData(instantRes.value);
-
-          setInstantOffersData(
-            data || {
-              targetDate: null,
-              offers: [],
-              quickAccess: [],
-            }
-          );
-        }
-
-        // Latest
-        if (
-          latestRes.status === "fulfilled"
-        ) {
-          const data =
-            extractData(latestRes.value);
-
-          setLatestData({
-            targetDate:
-              data?.targetDate || null,
-
-            products:
-              Array.isArray(data?.products)
-                ? data.products
-                : [],
-          });
-        }
-
-        const allRejected =
-          results.every(
-            (result) =>
-              result.status ===
-              "rejected"
-          );
-
-        if (allRejected) {
-          setError(
-            results[0].reason
-          );
-        }
-      } catch (err) {
-        console.error(
-          "خطا در دریافت اطلاعات صفحه اصلی:",
-          err
-        );
-
-        setError(err);
-      } finally {
-        setIsLoading(false);
-      }
+    return () => {
+      cancelled = true;
     };
-
-    fetchInitialData();
   }, []);
 
-  // =========================================================
-  // Latest products by category
-  // =========================================================
+  // دریافت جدیدترین محصولات؛ فقط آخرین درخواست اجازه تغییر state دارد
+  const fetchFilteredLatestProducts = useCallback(
+    async (category = "all", page = 1) => {
+      const requestId = ++latestRequestId.current;
 
-  const fetchFilteredLatestProducts =
-    useCallback(
-      async (
-        category = "all",
-        page = 1
-      ) => {
-        try {
-          setIsLatestLoading(true);
+      setIsLatestLoading(true);
 
-          const res =
-            await getLatestProducts({
-              category,
-              page,
-              limit: 6,
-            });
+      try {
+        const res = await getLatestProducts({
+          category,
+          page,
+          limit: 6,
+        });
 
-          const data =
-            extractData(res);
+        if (requestId !== latestRequestId.current) return;
 
-          console.log(
-            "Latest Products:",
-            {
-              category,
-              page,
-              data,
-            }
-          );
+        const data = extractData(res);
 
-          setLatestData({
-            targetDate:
-              data?.targetDate || null,
-
-            products:
-              Array.isArray(
-                data?.products
-              )
-                ? data.products
-                : [],
-          });
-        } catch (err) {
-          console.error(
-            "خطا در دریافت جدیدترین محصولات:",
-            err
-          );
-
-          // هنگام خطا state قبلی را حفظ می‌کنیم
-        } finally {
+        setLatestData({
+          targetDate: data?.targetDate ?? null,
+          products: Array.isArray(data?.products)
+            ? data.products
+            : [],
+        });
+      } catch (err) {
+        if (requestId === latestRequestId.current) {
+          setError(err);
+        }
+      } finally {
+        if (requestId === latestRequestId.current) {
           setIsLatestLoading(false);
         }
-      },
-      []
-    );
+      }
+    },
+    []
+  );
 
-  // =========================================================
-  // Change category
-  // =========================================================
+  const changeCategory = useCallback(
+    (categoryId) => {
+      if (!categoryId) return;
 
-  const changeCategory =
-    useCallback(
-      (categoryId) => {
-        if (!categoryId) return;
+      setSelectedCategory(categoryId);
+      setLatestPage(1);
 
-        setSelectedCategory(
-          categoryId
-        );
+      fetchFilteredLatestProducts(categoryId, 1);
+    },
+    [fetchFilteredLatestProducts]
+  );
 
-        setLatestPage(1);
+  const changeLatestPage = useCallback(
+    (page) => {
+      if (!Number.isInteger(page) || page < 1) return;
 
-        fetchFilteredLatestProducts(
-          categoryId,
-          1
-        );
-      },
-      [
-        fetchFilteredLatestProducts,
-      ]
-    );
+      setLatestPage(page);
 
-  // =========================================================
-  // Change page
-  // =========================================================
-
-  const changeLatestPage =
-    useCallback(
-      (page) => {
-        if (!page || page < 1) {
-          return;
-        }
-
-        setLatestPage(page);
-
-        fetchFilteredLatestProducts(
-          selectedCategory,
-          page
-        );
-      },
-      [
-        selectedCategory,
-        fetchFilteredLatestProducts,
-      ]
-    );
+      fetchFilteredLatestProducts(selectedCategory, page);
+    },
+    [selectedCategory, fetchFilteredLatestProducts]
+  );
 
   return {
     amazingData,
     bestSellingData,
     instantOffersData,
     latestData,
-
     selectedCategory,
     latestPage,
-
     isLoading,
     isLatestLoading,
     error,
-
     changeCategory,
     changeLatestPage,
   };

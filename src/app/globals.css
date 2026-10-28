@@ -1,22 +1,17 @@
+
 @import "tailwindcss";
 
 :root {
-  /* ================================
-     Colors
-     ================================ */
-
-  /* Background */
+  /* Colors */
   --color-background: #F6F5EF;
   --color-surface: #EFECE3;
   --color-surface-secondary: #F7F6F2;
 
-  /* Primary */
   --color-primary: #6F0000;
   --color-secondary: #838F57;
   --color-primary-hover: #660C26;
   --color-primary-soft: #F5E8EC;
 
-  /* Text */
   --color-product-title: #3B3535;
   --color-product-desctipion: #6E6868;
 
@@ -25,35 +20,27 @@
   --color-text-muted: #9A9294;
   --color-button-text: #FFF3E1;
 
-  /* Border */
   --color-border: #E5E0DC;
   --color-border-input: #838F57;
   --color-cart-boarder: #E5C1584D;
 
-  /* Header */
   --color-header-top: #EDF6F9;
   --color-header-bottom: #6F0000;
 
-  /* Status */
   --color-success: #4F7A45;
   --color-error: #B42318;
 
-  /* ================================
-     Admin Panel
-     ================================ */
-
+  /* Admin Panel */
   --color-admin-background: #F7F6F2;
   --color-admin-surface: #FFFFFF;
 
   --color-admin-primary: #6F0000;
   --color-admin-primary-hover: #660C26;
   --color-admin-primary-soft: #F5E8EC;
-
   --color-admin-secondary: #838F57;
 
   --color-admin-text: #292526;
   --color-admin-text-muted: #6E6868;
-
   --color-admin-border: #E5E0DC;
 
   --color-admin-success: #4F7A45;
@@ -61,40 +48,20 @@
   --color-admin-danger: #B42318;
   --color-admin-info: #3F6F8F;
 
-  /* ================================
-     Typography
-     ================================ */
-
-  --font-main: var(--font-main);
-  --font-fanum: var(--font-fanum);
-  --font-rokh: var(--font-rokh);
-
-  /* ================================
-     Radius
-     ================================ */
-
+  /* Radius */
   --radius-sm: 10px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-full: 9999px;
 
-  /* ================================
-     Shadows
-     ================================ */
-
+  /* Shadows */
   --shadow-card: 0 2px 10px rgba(36, 36, 40, 0.04);
   --shadow-dropdown: 0 8px 30px rgba(36, 36, 40, 0.08);
   --shadow-modal: 0 20px 50px rgba(36, 36, 40, 0.12);
 }
 
-
-/* ================================
-   Tailwind Theme
-   ================================ */
-
 @theme inline {
-  /* Colors */
   --color-background: var(--color-background);
   --color-surface: var(--color-surface);
   --color-surface-secondary: var(--color-surface-secondary);
@@ -107,7 +74,6 @@
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-muted: var(--color-text-muted);
-
   --color-button-text: var(--color-button-text);
 
   --color-product-title: var(--color-product-title);
@@ -117,51 +83,32 @@
   --color-border-input: var(--color-border-input);
   --color-cart-boarder: var(--color-cart-boarder);
 
-  /* Header */
   --color-header-top: var(--color-header-top);
   --color-header-bottom: var(--color-header-bottom);
 
-  /* Semantic */
   --color-success: var(--color-success);
   --color-error: var(--color-error);
 
-  /* Admin Panel */
   --color-admin-background: var(--color-admin-background);
   --color-admin-surface: var(--color-admin-surface);
 
   --color-admin-primary: var(--color-admin-primary);
   --color-admin-primary-hover: var(--color-admin-primary-hover);
   --color-admin-primary-soft: var(--color-admin-primary-soft);
-
   --color-admin-secondary: var(--color-admin-secondary);
 
   --color-admin-text: var(--color-admin-text);
   --color-admin-text-muted: var(--color-admin-text-muted);
-
   --color-admin-border: var(--color-admin-border);
 
   --color-admin-success: var(--color-admin-success);
   --color-admin-warning: var(--color-admin-warning);
   --color-admin-danger: var(--color-admin-danger);
   --color-admin-info: var(--color-admin-info);
-
-  /* Fonts */
-  --font-main: var(--font-main);
-  --font-fanum: var(--font-fanum);
-  --font-rokh: var(--font-rokh);
 }
-
-
-/* ================================
-   Base
-   ================================ */
 
 * {
   box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 body {
@@ -180,20 +127,10 @@ select {
   font: inherit;
 }
 
-
-/* ================================
-   Selection
-   ================================ */
-
 ::selection {
   background-color: var(--color-primary-soft);
   color: var(--color-primary-hover);
 }
-
-
-/* ================================
-   Container
-   ================================ */
 
 .container {
   width: 100%;
@@ -201,11 +138,6 @@ select {
   margin-inline: auto;
   padding-inline: 1.5rem;
 }
-
-
-/* ================================
-   Scrollbar
-   ================================ */
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -225,11 +157,6 @@ select {
   background-color: var(--color-text-muted);
 }
 
-
-/* ================================
-   Utilities
-   ================================ */
-
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -240,11 +167,6 @@ select {
     scrollbar-width: none;
   }
 }
-
-
-/* ================================
-   Shimmer
-   ================================ */
 
 @keyframes shimmer {
   0% {
@@ -259,4 +181,3 @@ select {
 .animate-shimmer {
   animation: shimmer 1.8s infinite linear;
 }
-
